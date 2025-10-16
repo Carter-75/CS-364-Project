@@ -1,0 +1,45 @@
+/* Minimal, device-friendly base styles */
+
+/* Box sizing reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Basic sensible defaults */
+html {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-size: 16px; /* base size; scales with browser settings */
+  -webkit-text-size-adjust: 100%;
+  line-height: 1.45;
+}
+
+body {
+  margin: 0;
+  padding: 1rem;
+  background-color: #ffffff;
+  color: #111;
+  min-height: 100vh;
+  display: block;
+}
+
+/* Make images responsive if later added */
+img,
+picture,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Utility container that stays readable on any device */
+.container {
+  max-width:  ninetych;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+
