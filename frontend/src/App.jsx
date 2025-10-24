@@ -5,6 +5,7 @@ export default function App() {
   const [dbStatus, setDbStatus] = useState('checking...');
   const [inputName, setInputName] = useState('');
   const [result, setResult] = useState('');
+  const [items, setItems] = useState([]);
 
   useEffect(() => {
     fetch('/api/health')
@@ -16,6 +17,12 @@ export default function App() {
       .then((r) => r.json())
       .then((d) => setDbStatus(d.status || 'unknown'))
       .catch(() => setDbStatus('unreachable'));
+    fetch('/api/names')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.status === 'ok') setItems(d.items || []);
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -38,13 +45,17 @@ export default function App() {
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({name}),
             });
-            /*const data = await res.json();
+            const data = await res.json();
             if (data.status === "ok") {
               setResult("SAVED!");
               setInputName('');
+              // Refetch the list so the new name appears immediately
+              const r2 = await fetch('/api/names');
+              const d2 = await r2.json();
+              if (d2.status === 'ok') setItems(d2.items || []);
             } else {
               setResult(data.error || 'Insert FAILED');
-            }*/
+            }
           } catch (err) {
               setResult('Network error');
           }
@@ -55,6 +66,15 @@ export default function App() {
         <button type="submit">SAVE</button>
       </form>
       {result && <p aria-live='polite'>{result}</p>}
+
+      <h2>Recent names</h2>
+      <ul>
+        {items.map((it) => (
+          <li key={it.id}>
+            {it.name} — {it.created_at ? new Date(it.created_at).toLocaleString() : ''}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

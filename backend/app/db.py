@@ -92,7 +92,8 @@ def table_exists() -> None:
         cur.execute ('''
             CREATE TABLE IF NOT EXISTS names (
                 id INT PRIMARY KEY AUTO_INCREMENT,
-                name VARCHAR(255) NOT NULL
+                name VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             ''')
         conn.commit()
@@ -132,4 +133,32 @@ def name(name: str) -> Tuple[bool, Optional[str]]:
         return False, str(exc)
     finally:
         conn.close()
+
+
+def fetch_names() -> Tuple[bool, Optional[str], Optional[list]]:
+    '''Return a list of rows as dicts: [{id, name, created_at}, ...].'''
+    conn = None
+    try:
+        table_exists()
+        conn = get_connection()
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT id, name, created_at FROM names ORDER BY id DESC")
+        rows = cur.fetchall() or []
+        # Ensure created_at is JSON-serializable for the API response
+        for row in rows:
+            ca = row.get("created_at")
+            if ca is not None and hasattr(ca, "isoformat"):
+                row["created_at"] = ca.isoformat()
+        cur.close()
+        return True, None, rows
+    except Error as exc:
+        return False, str(exc), None
+    except Exception as exc:
+        return False, str(exc), None
+    finally:
+        try:
+            if conn is not None:
+                conn.close()
+        except Exception:
+            pass
 
