@@ -1,6 +1,6 @@
 ## Project TODO
 
-**Environment**
+Environment
 - [ ] Create `backend/.env` with:
   - FLASK_RUN_HOST=`0.0.0.0`
   - FLASK_RUN_PORT=`5000`
@@ -11,33 +11,34 @@
   - DB_USER=`<your-db-user>`
   - DB_PASSWORD=`<your-db-password>`
   - DB_NAME=`<your-database>`
-  - FRONTEND_ORIGIN=`<your-frontend-url>`  # e.g., `http://localhost:3000` for local dev
+  - FRONTEND_ORIGIN=`<your-frontend-url>`  # e.g., `http://127.0.0.1:5500` if using Live Server, or `*` for quick local tests
 
-- **Install & Run (backend)**
+- Install & Run (backend)
   - [ ] `cd backend`
   - [ ] Create venv: `python -m venv .venv`
-  - [ ] Activate venv: `.venv\\Scripts\\activate` (Windows)
+  - [ ] Activate venv: `.venv\Scripts\activate` (Windows)
   - [ ] `pip install -r requirements.txt`
   - [ ] `waitress-serve --listen=0.0.0.0:5000 run:app`
 
-- **Verify API**
+- Verify API
   - [ ] Root health: open `http://127.0.0.1:5000/` → expect `{ "status": "ok" }`
   - [ ] API Health: open `http://127.0.0.1:5000/api/health` → expect `{ "status": "ok" }`
   - [ ] DB Ping: open `http://127.0.0.1:5000/api/db/ping`
     - Expect `{ "status": "ok" }` if credentials are valid
     - Otherwise `{ "status": "error", "error": "..." }`
 
-- **Frontend**
-  - [ ] Open `frontend/index.html` in browser
-  - [ ] Confirm the page shows `Backend: ok`
+- Frontend
+  - [ ] `cd frontend`
+  - [ ] Install Node deps: `npm install`
+  - [ ] Start dev server: `npm run dev` (serves on `http://127.0.0.1:5173`)
+  - [ ] Confirm the page shows API and Database status
 
-- **MySQL Checklist**
+- MySQL Checklist
   - [ ] Ensure MySQL server is running and accessible
   - [ ] Confirm user/password and DB exist
   - [ ] If needed, update `.env` with correct credentials
 
-- **Next (optional, later)**
-  - [ ] Add CRUD endpoints with MySQL queries
-  - [ ] Add simple UI form that calls new endpoints
+Notes
+- Vite dev server proxies `/api/*` to Flask at `http://127.0.0.1:5000` per `frontend/vite.config.js`. Keep Flask running while using `npm run dev`.
 
 

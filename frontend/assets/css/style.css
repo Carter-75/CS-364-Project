@@ -35,7 +35,7 @@ video {
 
 /* Utility container that stays readable on any device */
 .container {
-  max-width:  ninetych;
+  max-width: 90ch;
   margin-left: auto;
   margin-right: auto;
   padding-left: 1rem;
