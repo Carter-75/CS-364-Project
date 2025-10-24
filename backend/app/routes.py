@@ -1,5 +1,5 @@
-from flask import Blueprint, jsonify
-from .db import ping_database
+from flask import Blueprint, jsonify, request
+from .db import ping_database, name
 import logging
 
 api_bp = Blueprint("api", __name__)
@@ -41,3 +41,14 @@ def db_ping():
 #     if not ok:
 #         return jsonify({"status": "error", "error": error}), 500
 #     return jsonify({"status": "ok"})
+
+@api_bp.post("/names")
+def create_name():
+    data = request.get_json(silent=True) or {}
+    person_name = (data.get("name") or "").strip()
+    if not person_name:
+        return jsonify({"status": "error", "error": "name needed"}), 400
+    ok, error = name(person_name)
+    if not ok:
+        return jsonify({"status": "error", "error": error or "insert failed"}),500
+    return jsonify({"status": "ok"})

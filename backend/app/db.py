@@ -84,6 +84,21 @@ def ping_database() -> Tuple[bool, Optional[str]]:
 #         cur.close()
 #     finally:
 #         conn.close()
+
+def table_exists() -> None:
+    conn=get_connection()
+    try: 
+        cur=conn.cursor()
+        cur.execute ('''
+            CREATE TABLE IF NOT EXISTS names (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                name VARCHAR(255) NOT NULL
+            )
+            ''')
+        conn.commit()
+        cur.close()
+    finally: 
+        conn.close()
 #
 # def insert_name(name: str, email: str) -> Tuple[bool, Optional[str]]:
 #     """Insert a single row into `names` after ensuring the table exists.
@@ -102,6 +117,19 @@ def ping_database() -> Tuple[bool, Optional[str]]:
 #         return False, str(exc)
 #     except Exception as exc:
 #         return False, str(exc)
-
-
+def name(name: str) -> Tuple[bool, Optional[str]]:
+    try:
+        table_exists()
+        conn=get_connection()
+        cur=conn.cursor()
+        cur.execute("INSERT INTO names (name) VALUES (%s)", (name,))
+        conn.commit()
+        cur.close()
+        return True, None
+    except Error as exc:
+        return False, str(exc)
+    except Exception as exc:
+        return False, str(exc)
+    finally:
+        conn.close()
 
