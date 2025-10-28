@@ -23,25 +23,7 @@ def db_ping():
         "status": "ok" if ok else "error",
         "error": None if ok else "Database connection failed",
     })
-
-# Example insert route (commented):
-# from flask import request
-# from .db import insert_name
-#
-# @api_bp.post("/names")
-# def create_name():
-#     """Minimal insert endpoint; expects JSON body { "name": "...", "email": "..." }."""
-#     data = request.get_json(silent=True) or {}
-#     name = (data.get("name") or "").strip()
-#     email = (data.get("email") or "").strip()
-#     if not name or not email:
-#         return jsonify({"status": "error", "error": "name and email are required"}), 400
-#
-#     ok, error = insert_name(name)
-#     if not ok:
-#         return jsonify({"status": "error", "error": error}), 500
-#     return jsonify({"status": "ok"})
-
+"""Examples
 @api_bp.post("/names")
 def create_name():
     data = request.get_json(silent=True) or {}
@@ -59,3 +41,4 @@ def list_names():
     if not ok:
         return jsonify({"status": "error", "error": error or "fetch failed"}), 500
     return jsonify({"status": "ok", "items": rows})
+"""

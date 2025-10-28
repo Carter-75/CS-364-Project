@@ -62,29 +62,7 @@ def ping_database() -> Tuple[bool, Optional[str]]:
         except Exception:
             pass
 
-# Example helpers (commented):
-# def ensure_table_exists() -> None:
-#     """Create the `names` table if it does not already exist.
-#     Example includes an email column to store a second field.
-#     """
-#     conn = get_connection()
-#     try:
-#         cur = conn.cursor()
-#         cur.execute(
-#             """
-#             CREATE TABLE IF NOT EXISTS names (
-#                 id INT PRIMARY KEY AUTO_INCREMENT,
-#                 name VARCHAR(255) NOT NULL,
-#                 email VARCHAR(255) NOT NULL,
-#                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-#             )
-#             """
-#         )
-#         conn.commit()
-#         cur.close()
-#     finally:
-#         conn.close()
-
+"""Examples
 def table_exists() -> None:
     conn=get_connection()
     try: 
@@ -100,24 +78,7 @@ def table_exists() -> None:
         cur.close()
     finally: 
         conn.close()
-#
-# def insert_name(name: str, email: str) -> Tuple[bool, Optional[str]]:
-#     """Insert a single row into `names` after ensuring the table exists.
-#     This example writes both name and email.
-#     """
-#     try:
-#         ensure_table_exists()
-#         conn = get_connection()
-#         cur = conn.cursor()
-#         cur.execute("INSERT INTO names (name, email) VALUES (%s, %s)", (name, email))
-#         conn.commit()
-#         cur.close()
-#         conn.close()
-#         return True, None
-#     except Error as exc:
-#         return False, str(exc)
-#     except Exception as exc:
-#         return False, str(exc)
+
 def name(name: str) -> Tuple[bool, Optional[str]]:
     try:
         table_exists()
@@ -161,4 +122,4 @@ def fetch_names() -> Tuple[bool, Optional[str], Optional[list]]:
                 conn.close()
         except Exception:
             pass
-
+"""
