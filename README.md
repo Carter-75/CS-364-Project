@@ -81,7 +81,7 @@ backend/
 frontend/
   src/
     main.jsx           # React entry
-    App.jsx            # Example API/DB status component
+    App.jsx            # API/DB status component
   vite.config.js       # Dev proxy to Flask
   package.json         # deps + scripts
   index.html           # Vite HTML entry
