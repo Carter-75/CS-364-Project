@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from .db import ping_database, name, fetch_names
+from .db import ping_database
 import logging
 
 api_bp = Blueprint("api", __name__)
