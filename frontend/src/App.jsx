@@ -19,6 +19,12 @@ export default function App() {
   });
   const [result, setResult] = useState('');
   const [items, setItems] = useState([]);
+  const [queryResult, setQueryResult] = useState({
+    title: '',
+    loading: false,
+    data: null,
+    error: '',
+  });
 
   useEffect(() => {
     fetch('/api/health')
@@ -31,6 +37,27 @@ export default function App() {
       .then((d) => setDbStatus(d.status || 'unknown'))
       .catch(() => setDbStatus('unreachable'));
   }, []);
+
+  async function runQuery(endpoint, title) {
+    setQueryResult({ title, loading: true, data: null, error: '' });
+    try {
+      const res = await fetch(endpoint);
+      let data = null;
+      try {
+        data = await res.json();
+      } catch (_) {
+        // ignore JSON parse errors
+      }
+      if (!res.ok) {
+        const message = (data && (data.error || data.message)) || 'Request failed';
+        setQueryResult({ title, loading: false, data: null, error: message });
+        return;
+      }
+      setQueryResult({ title, loading: false, data: data ?? null, error: '' });
+    } catch (e) {
+      setQueryResult({ title, loading: false, data: null, error: 'Network error' });
+    }
+  }
 
   return (
     <div>
@@ -198,6 +225,83 @@ export default function App() {
         <button type="submit">SAVE</button>
       </form>
       {result && <p aria-live='polite'>{result}</p>}
+
+      <hr />
+      <section aria-labelledby="queries-title">
+        <h2 id="queries-title">Advanced Queries</h2>
+        <div>
+          <button
+            type="button"
+            onClick={() =>
+              runQuery('/api/queries/top-rated-by-type', 'Top 5 highest-rated media by type')
+            }
+          >
+            Top rated by type
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              runQuery(
+                '/api/queries/top-users-completed',
+                'Top 5 users who completed the most media'
+              )
+            }
+          >
+            Top users completed
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              runQuery(
+                '/api/queries/top-media-completions',
+                'Top 5 media with the most completions'
+              )
+            }
+          >
+            Top media completions
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              runQuery('/api/queries/avg-rating-by-genre', 'Average rating per genre')
+            }
+          >
+            Avg rating by genre
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              runQuery(
+                '/api/queries/users-rated-high',
+                'Users who rated at least one media high'
+              )
+            }
+          >
+            Users rated high
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              runQuery(
+                '/api/queries/recent-low-rated',
+                '10 most recent low-rated media (≤ 3)'
+              )
+            }
+          >
+            Recent low-rated media
+          </button>
+        </div>
+        {queryResult.loading && <p>Loading…</p>}
+        {queryResult.error && (
+          <p role="alert">Query failed: {queryResult.error}</p>
+        )}
+        {queryResult.data && (
+          <div>
+            <h3>{queryResult.title}</h3>
+            <pre>{JSON.stringify(queryResult.data, null, 2)}</pre>
+          </div>
+        )}
+      </section>
 
       {/*<h2>Recent names</h2>
       <ul>
