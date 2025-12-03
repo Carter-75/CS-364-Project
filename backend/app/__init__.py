@@ -20,7 +20,8 @@ def create_app() -> Flask:
     app.register_blueprint(api_bp, url_prefix="/api")
 
     @app.get("/")
-    def root():
+    def root():  # type: ignore
         return jsonify({"status": "ok"})
 
+    print(app.url_map)
     return app

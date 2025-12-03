@@ -1,12 +1,12 @@
 import os
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict, Any, List
 
 
 import mysql.connector
 from mysql.connector import Error
- 
+from mysql.connector.connection import MySQLConnection
 
-def _get_db_config() -> dict:
+def _get_db_config() -> Dict[str, Any]:
     """Load DB configuration from environment variables.
 
     Using env vars (with python-dotenv during local dev) keeps secrets out of
@@ -21,10 +21,10 @@ def _get_db_config() -> dict:
     }
 
 
-def get_connection() -> mysql.connector.connection.MySQLConnection:
+def get_connection() -> MySQLConnection:
     """Create and return a new MySQL connection using the above config."""
     cfg = _get_db_config()
-    return mysql.connector.connect(
+    conn = mysql.connector.connect(
         host=cfg["host"],
         port=cfg["port"],
         user=cfg["user"],
@@ -32,6 +32,8 @@ def get_connection() -> mysql.connector.connection.MySQLConnection:
         database=cfg["database"],
         connection_timeout=3,
     )
+    # Ensure we return a MySQLConnection, even if it's pooled (though here it's direct)
+    return conn  # type: ignore
 
 
 def ping_database() -> Tuple[bool, Optional[str]]:
@@ -264,7 +266,7 @@ def get_recent_low_rated(limit: int = 10):
 
 #User CRUD
 
-def create_user(first, last, profile):
+def create_user(first: str, last: str, profile: str) -> Tuple[bool, Optional[str]]:
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -280,7 +282,7 @@ def create_user(first, last, profile):
         return False, str(e)
 
 
-def get_all_users():
+def get_all_users() -> List[Dict[str, Any]]:
     try:
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
@@ -288,12 +290,12 @@ def get_all_users():
         rows = cur.fetchall()
         cur.close()
         conn.close()
-        return rows
+        return rows  # type: ignore
     except Exception:
         return []
 
 
-def update_user(user_id, first, last, profile):
+def update_user(user_id: int, first: str, last: str, profile: str) -> Tuple[bool, Optional[str]]:
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -310,7 +312,7 @@ def update_user(user_id, first, last, profile):
         return False, str(e)
 
 
-def delete_user(user_id):
+def delete_user(user_id: int) -> Tuple[bool, Optional[str]]:
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -326,7 +328,7 @@ def delete_user(user_id):
 
 # Review CRUD
 
-def create_review(user_id, media_id, rating, text, status):
+def create_review(user_id: int, media_id: int, rating: int, text: str, status: str) -> Tuple[bool, Optional[str]]:
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -342,7 +344,7 @@ def create_review(user_id, media_id, rating, text, status):
         return False, str(e)
 
 
-def update_review(review_id, rating, text, status):
+def update_review(review_id: int, rating: int, text: str, status: str) -> Tuple[bool, Optional[str]]:
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -359,7 +361,7 @@ def update_review(review_id, rating, text, status):
         return False, str(e)
 
 
-def delete_review(review_id):
+def delete_review(review_id: int) -> Tuple[bool, Optional[str]]:
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -431,3 +433,115 @@ def fetch_names() -> Tuple[bool, Optional[str], Optional[list]]:
         except Exception:
             pass
 """
+
+def create_full_media_entry(data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+    """
+    Orchestrates the creation of User, Genre, Platform, Media, and Review
+    in a single transaction (or reuses existing ones).
+    """
+    conn = None
+    try:
+        conn = get_connection()
+        conn.start_transaction()  # Explicitly start transaction for ACID compliance
+
+        def fetch_value(sql, params):
+            cur = conn.cursor(buffered=True)
+            try:
+                cur.execute(sql, params)
+                rows = cur.fetchall()
+                return rows[0][0] if rows else None
+            except Exception:
+                # If fetchall fails or returns nothing, ensure we close cleanly
+                return None
+            finally:
+                cur.close()
+
+        def insert_record(sql, params):
+            cur = conn.cursor(buffered=True)
+            try:
+                cur.execute(sql, params)
+                # Some drivers/configurations might have issues with fetchall after insert
+                # We can try to consume results if any exist, but ignore errors
+                try:
+                    cur.fetchall()
+                except Exception:
+                    pass
+                return cur.lastrowid
+            finally:
+                cur.close()
+
+        def execute_stmt(sql, params):
+            cur = conn.cursor(buffered=True)
+            try:
+                cur.execute(sql, params)
+                try:
+                    cur.fetchall()
+                except Exception:
+                    pass
+            finally:
+                cur.close()
+
+        # 1. Ensure User
+        # Use FOR UPDATE to lock rows and ensure Isolation (prevent race conditions)
+        user_id = fetch_value("SELECT UserId FROM User WHERE ProfileName = %s FOR UPDATE", (data['profilename'],))
+        if not user_id:
+            user_id = insert_record(
+                "INSERT INTO User (FirstName, LastName, ProfileName) VALUES (%s, %s, %s)",
+                (data['firstname'], data['lastname'], data['profilename'])
+            )
+
+        # 2. Ensure Genre
+        genre_id = fetch_value("SELECT GenreId FROM Genre WHERE GenreName = %s FOR UPDATE", (data['genre'],))
+        if not genre_id:
+            genre_id = insert_record("INSERT INTO Genre (GenreName) VALUES (%s)", (data['genre'],))
+
+        # 3. Ensure Platform
+        platform_id = fetch_value("SELECT PlatformId FROM Platform WHERE PlatformName = %s FOR UPDATE", (data['platform'],))
+        if not platform_id:
+            platform_id = insert_record("INSERT INTO Platform (PlatformName) VALUES (%s)", (data['platform'],))
+
+        # 4. Ensure Media
+        media_id = fetch_value("""
+            SELECT MediaId FROM Media 
+            WHERE MediaName = %s AND MediaType = %s AND ReleaseYear = %s FOR UPDATE
+        """, (data['medianame'], data['mediatype'], data['releaseyear']))
+        
+        if not media_id:
+            media_id = insert_record("""
+                INSERT INTO Media (MediaName, MediaType, ReleaseYear, GenreId, PlatformId, Description)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                data['medianame'], 
+                data['mediatype'], 
+                data['releaseyear'], 
+                genre_id, 
+                platform_id, 
+                data.get('description', '')
+            ))
+
+        # 5. Create or Update Review
+        review_id = fetch_value("SELECT ReviewId FROM Review WHERE UserId = %s AND MediaId = %s FOR UPDATE", (user_id, media_id))
+        
+        if review_id:
+            # Update existing review
+            execute_stmt("""
+                UPDATE Review 
+                SET Rating = %s, ReviewText = %s, Status = %s
+                WHERE ReviewId = %s
+            """, (data['rating'], data.get('ratingtext', ''), data['status'], review_id))
+        else:
+            # Insert new review
+            execute_stmt("""
+                INSERT INTO Review (UserId, MediaId, Rating, ReviewText, Status)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (user_id, media_id, data['rating'], data.get('ratingtext', ''), data['status']))
+
+        conn.commit()
+        return True, None
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return False, str(e)
+    finally:
+        if conn:
+            conn.close()

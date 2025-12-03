@@ -12,34 +12,204 @@ html {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   font-size: 16px; /* base size; scales with browser settings */
   -webkit-text-size-adjust: 100%;
-  line-height: 1.45;
+  line-height: 1.6;
 }
 
 body {
   margin: 0;
-  padding: 1rem;
-  background-color: #ffffff;
-  color: #111;
+  padding: 2rem;
+  background-color: #f4f4f9;
+  color: #333;
   min-height: 100vh;
+}
+
+/* Typography */
+h1, h2, h3 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 0.5rem;
+}
+
+/* Utility container */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Status Panel */
+.status-panel {
+  background-color: #ecf0f1;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 2rem;
+  border-left: 5px solid #3498db;
+}
+
+.status-panel h2 {
+  margin-bottom: 0.75rem;
+  font-size: 1.2rem;
+  border-bottom: none;
+  color: #2c3e50;
+  margin-top: 0;
+}
+
+.status-items {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.status-item .value {
+  text-transform: uppercase;
+  font-weight: bold;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background-color: #95a5a6; /* default gray */
+  color: white;
+}
+
+.status-item .value.ok {
+  background-color: #2ecc71;
+}
+
+.status-item .value.error {
+  background-color: #e74c3c;
+}
+
+/* Form Styles */
+form {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
   display: block;
 }
 
-/* Make images responsive if later added */
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background-color: #3498db;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #2980b9;
+}
+
+button[type="submit"] {
+  background-color: #27ae60;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+button[type="submit"]:hover {
+  background-color: #219150;
+}
+
+/* Status & Results */
+p[aria-live="polite"] {
+  padding: 1rem;
+  background-color: #e8f8f5;
+  border: 1px solid #2ecc71;
+  color: #27ae60;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* Advanced Queries Section */
+section[aria-labelledby="queries-title"] {
+  margin-top: 2rem;
+}
+
+section div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+section button {
+  flex: 1 1 auto;
+  background-color: #95a5a6;
+  font-size: 0.9rem;
+}
+
+section button:hover {
+  background-color: #7f8c8d;
+}
+
+pre {
+  background-color: #2c3e50;
+  color: #ecf0f1;
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: "Courier New", Courier, monospace;
+}
+
+/* Responsive Images */
 img,
 picture,
 video {
   max-width: 100%;
   height: auto;
   display: block;
-}
-
-/* Utility container that stays readable on any device */
-.container {
-  max-width: 90ch;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 1rem;
-  padding-right: 1rem;
 }
 
 

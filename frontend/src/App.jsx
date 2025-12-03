@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 export default function App() {
+  // Updated by Copilot
   const [apiStatus, setApiStatus] = useState('checking...');
   const [dbStatus, setDbStatus] = useState('checking...');
   const [formData, setFormData] = useState({
@@ -25,6 +26,24 @@ export default function App() {
     data: null,
     error: '',
   });
+
+  const commonMediaTypes = ['Movie', 'Show', 'Song', 'Book', 'Game'];
+  const commonGenres = ['Action', 'Comedy', 'Sci-Fi', 'Horror', 'Romance', 'Thriller', 'Drama', 'Fantasy', 'Documentary', 'Animation'];
+  const commonPlatforms = ['Netflix', 'Hulu', 'Disney+', 'HBO Max', 'Spotify', 'YouTube', 'Amazon Prime', 'Apple TV', 'Steam', 'PlayStation', 'Xbox'];
+
+  const [isCustomMediaType, setIsCustomMediaType] = useState(false);
+  const [isCustomGenre, setIsCustomGenre] = useState(false);
+  const [isCustomPlatform, setIsCustomPlatform] = useState(false);
+  const [isCustomYear, setIsCustomYear] = useState(false);
+
+  const currentYear = new Date().getFullYear();
+  // 1888 is often cited as the year of the first motion picture (Roundhay Garden Scene).
+  // Books go back much further, but for a dropdown, 1800 is a reasonable cutoff for "modern" media.
+  // Older items can use the "Custom" option.
+  const years = [];
+  for (let y = currentYear + 1; y >= 1800; y--) {
+    years.push(y);
+  }
 
   useEffect(() => {
     fetch('/api/health')
@@ -61,11 +80,19 @@ export default function App() {
 
   return (
     <div>
-    {/*  <h2>Backend Status</h2>
-      <ul>
-        <li>API: {apiStatus}</li>
-        <li>Database: {dbStatus}</li>
-      </ul> */}
+      <div className="status-panel">
+        <h2>Backend Status</h2>
+        <div className="status-items">
+          <div className="status-item">
+            <span className="label">API:</span>
+            <span className={`value ${apiStatus === 'ok' ? 'ok' : 'error'}`}>{apiStatus}</span>
+          </div>
+          <div className="status-item">
+            <span className="label">Database:</span>
+            <span className={`value ${dbStatus === 'ok' ? 'ok' : 'error'}`}>{dbStatus}</span>
+          </div>
+        </div>
+      </div>
 
       <h1>Add your media entry</h1>
       <form
@@ -105,6 +132,10 @@ export default function App() {
                 status: '',
                 platform: '',
               });
+              setIsCustomMediaType(false);
+              setIsCustomGenre(false);
+              setIsCustomPlatform(false);
+              setIsCustomYear(false);
             } else {
               const serverError = responseData?.error || responseData?.message;
               setResult(serverError ? `Insert FAILED: ${serverError}` : 'Insert FAILED');
@@ -142,13 +173,36 @@ export default function App() {
         />
 
         <label htmlFor="mediatype">Media type</label>
-        <input
-          id="mediatype"
-          type="text"
-          value={formData.mediatype}
-          onChange={(e) => setFormData((p) => ({ ...p, mediatype: e.target.value }))}
-          required
-        />
+        <select
+          id="mediatype-select"
+          value={isCustomMediaType ? 'custom' : formData.mediatype}
+          onChange={(e) => {
+            if (e.target.value === 'custom') {
+              setIsCustomMediaType(true);
+              setFormData((p) => ({ ...p, mediatype: '' }));
+            } else {
+              setIsCustomMediaType(false);
+              setFormData((p) => ({ ...p, mediatype: e.target.value }));
+            }
+          }}
+          required={!isCustomMediaType}
+        >
+          <option value="" disabled>Select media type</option>
+          {commonMediaTypes.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+          <option value="custom">Enter custom...</option>
+        </select>
+        {isCustomMediaType && (
+          <input
+            id="mediatype"
+            type="text"
+            placeholder="Enter custom media type"
+            value={formData.mediatype}
+            onChange={(e) => setFormData((p) => ({ ...p, mediatype: e.target.value }))}
+            required
+          />
+        )}
 
         <label htmlFor="medianame">Media name</label>
         <input
@@ -168,34 +222,83 @@ export default function App() {
         />
 
         <label htmlFor="releaseyear">Release year</label>
-        <input
-          id="releaseyear"
-          type="number"
-          value={formData.releaseyear}
-          onChange={(e) => setFormData((p) => ({ ...p, releaseyear: e.target.value }))}
-          required
-        />
+        <select
+          id="releaseyear-select"
+          value={isCustomYear ? 'custom' : formData.releaseyear}
+          onChange={(e) => {
+            if (e.target.value === 'custom') {
+              setIsCustomYear(true);
+              setFormData((p) => ({ ...p, releaseyear: '' }));
+            } else {
+              setIsCustomYear(false);
+              setFormData((p) => ({ ...p, releaseyear: e.target.value }));
+            }
+          }}
+          required={!isCustomYear}
+        >
+          <option value="" disabled>Select year</option>
+          <option value="custom">Enter custom...</option>
+          {years.map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+        {isCustomYear && (
+          <input
+            id="releaseyear"
+            type="number"
+            placeholder="Enter custom year"
+            value={formData.releaseyear}
+            onChange={(e) => setFormData((p) => ({ ...p, releaseyear: e.target.value }))}
+            required
+          />
+        )}
 
         <label htmlFor="genre">Genre</label>
-        <input
-          id="genre"
-          type="text"
-          value={formData.genre}
-          onChange={(e) => setFormData((p) => ({ ...p, genre: e.target.value }))}
-          required
-        />
+        <select
+          id="genre-select"
+          value={isCustomGenre ? 'custom' : formData.genre}
+          onChange={(e) => {
+            if (e.target.value === 'custom') {
+              setIsCustomGenre(true);
+              setFormData((p) => ({ ...p, genre: '' }));
+            } else {
+              setIsCustomGenre(false);
+              setFormData((p) => ({ ...p, genre: e.target.value }));
+            }
+          }}
+          required={!isCustomGenre}
+        >
+          <option value="" disabled>Select genre</option>
+          {commonGenres.map((g) => (
+            <option key={g} value={g}>{g}</option>
+          ))}
+          <option value="custom">Enter custom...</option>
+        </select>
+        {isCustomGenre && (
+          <input
+            id="genre"
+            type="text"
+            placeholder="Enter custom genre"
+            value={formData.genre}
+            onChange={(e) => setFormData((p) => ({ ...p, genre: e.target.value }))}
+            required
+          />
+        )}
 
         <label htmlFor="rating">Rating (1–5)</label>
-        <input
+        <select
           id="rating"
-          type="number"
-          min={1}
-          max={5}
-          step={1}
           value={formData.rating}
           onChange={(e) => setFormData((p) => ({ ...p, rating: e.target.value }))}
           required
-        />
+        >
+          <option value="" disabled>Select rating</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
 
         <label htmlFor="ratingtext">Rating text (optional)</label>
         <input
@@ -206,22 +309,50 @@ export default function App() {
         />
 
         <label htmlFor="status">Status</label>
-        <input
+        <select
           id="status"
-          type="text"
           value={formData.status}
           onChange={(e) => setFormData((p) => ({ ...p, status: e.target.value }))}
           required
-        />
+        >
+          <option value="" disabled>Select status</option>
+          <option value="Planning">Planning</option>
+          <option value="Watching">Watching</option>
+          <option value="Completed">Completed</option>
+          <option value="Havent Watched">Havent Watched</option>
+        </select>
 
         <label htmlFor="platform">Platform</label>
-        <input
-          id="platform"
-          type="text"
-          value={formData.platform}
-          onChange={(e) => setFormData((p) => ({ ...p, platform: e.target.value }))}
-          required
-        />
+        <select
+          id="platform-select"
+          value={isCustomPlatform ? 'custom' : formData.platform}
+          onChange={(e) => {
+            if (e.target.value === 'custom') {
+              setIsCustomPlatform(true);
+              setFormData((p) => ({ ...p, platform: '' }));
+            } else {
+              setIsCustomPlatform(false);
+              setFormData((p) => ({ ...p, platform: e.target.value }));
+            }
+          }}
+          required={!isCustomPlatform}
+        >
+          <option value="" disabled>Select platform</option>
+          {commonPlatforms.map((pl) => (
+            <option key={pl} value={pl}>{pl}</option>
+          ))}
+          <option value="custom">Enter custom...</option>
+        </select>
+        {isCustomPlatform && (
+          <input
+            id="platform"
+            type="text"
+            placeholder="Enter custom platform"
+            value={formData.platform}
+            onChange={(e) => setFormData((p) => ({ ...p, platform: e.target.value }))}
+            required
+          />
+        )}
         <button type="submit">SAVE</button>
       </form>
       {result && <p aria-live='polite'>{result}</p>}
@@ -233,7 +364,7 @@ export default function App() {
           <button
             type="button"
             onClick={() =>
-              runQuery('/api/queries/top-rated-by-type', 'Top 5 highest-rated media by type')
+              runQuery('/api/top-rated-media', 'Top 5 highest-rated media by type')
             }
           >
             Top rated by type
@@ -242,7 +373,7 @@ export default function App() {
             type="button"
             onClick={() =>
               runQuery(
-                '/api/queries/top-users-completed',
+                '/api/top-users-completed',
                 'Top 5 users who completed the most media'
               )
             }
@@ -253,7 +384,7 @@ export default function App() {
             type="button"
             onClick={() =>
               runQuery(
-                '/api/queries/top-media-completions',
+                '/api/top-media-completions',
                 'Top 5 media with the most completions'
               )
             }
@@ -263,7 +394,7 @@ export default function App() {
           <button
             type="button"
             onClick={() =>
-              runQuery('/api/queries/avg-rating-by-genre', 'Average rating per genre')
+              runQuery('/api/avg-rating-genre', 'Average rating per genre')
             }
           >
             Avg rating by genre
@@ -272,7 +403,7 @@ export default function App() {
             type="button"
             onClick={() =>
               runQuery(
-                '/api/queries/users-rated-high',
+                '/api/users-rated-high',
                 'Users who rated at least one media high'
               )
             }
@@ -283,7 +414,7 @@ export default function App() {
             type="button"
             onClick={() =>
               runQuery(
-                '/api/queries/recent-low-rated',
+                '/api/low-rated-recent',
                 '10 most recent low-rated media (≤ 3)'
               )
             }

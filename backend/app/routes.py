@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
-from .db import ping_database, get_connection
+from typing import Dict, Any
+from .db import ping_database
 from .db import (
     get_top_rated_media,
     get_top_users_completed,
@@ -13,7 +14,8 @@ from .db import (
     delete_user,
     create_review,
     update_review,
-    delete_review
+    delete_review,
+    create_full_media_entry
 )
 import logging
 
@@ -62,22 +64,10 @@ def get_users():
 def top_rated_media():
     """Top 5 highest-rated media overall by type."""
     try:
-        conn = get_connection()
-        cur = conn.cursor(dictionary=True)
-        cur.execute("""
-            SELECT 
-                Media.MediaType,
-                Media.MediaName,
-                ROUND(AVG(Review.Rating), 2) AS AvgRating
-            FROM Review
-            JOIN Media ON Review.MediaId = Media.MediaId
-            GROUP BY Media.MediaId, Media.MediaType
-            ORDER BY AvgRating DESC
-            LIMIT 5;
-        """)
-        data = cur.fetchall()
-        cur.close()
-        conn.close()
+        ok, err, data = get_top_rated_media()
+        if not ok:
+            logger.error(f"/top-rated-media failed: {err}")
+            return jsonify({"error": "Query failed"}), 500
         return jsonify(data)
     except Exception as exc:
         logger.error(f"/top-rated-media failed: {exc}")
@@ -87,24 +77,10 @@ def top_rated_media():
 def top_users_completed():
     """Top 5 users who completed the most media."""
     try:
-        conn = get_connection()
-        cur = conn.cursor(dictionary=True)
-        cur.execute("""
-            SELECT 
-                u.FirstName, 
-                u.LastName, 
-                COUNT(*) AS media_done
-            FROM User AS u
-            JOIN Review AS r ON u.UserId = r.UserId
-            WHERE r.Status = 'Completed'
-            GROUP BY u.UserId, u.FirstName, u.LastName
-            HAVING media_done > 5
-            ORDER BY media_done DESC
-            LIMIT 5 OFFSET 0;
-        """)
-        data = cur.fetchall()
-        cur.close()
-        conn.close()
+        ok, err, data = get_top_users_completed()
+        if not ok:
+            logger.error(f"/top-users-completed failed: {err}")
+            return jsonify({"error": "Query failed"}), 500
         return jsonify(data)
     except Exception as exc:
         logger.error(f"/top-users-completed failed: {exc}")
@@ -114,23 +90,10 @@ def top_users_completed():
 def top_media_completions():
     """Top 5 media with the most completions."""
     try:
-        conn = get_connection()
-        cur = conn.cursor(dictionary=True)
-        cur.execute("""
-            SELECT 
-                m.MediaName, 
-                COUNT(*) AS user_completions
-            FROM Media AS m
-            JOIN Review AS r ON m.MediaId = r.MediaId
-            WHERE r.Status = 'Completed'
-            GROUP BY m.MediaId, m.MediaName
-            HAVING user_completions > 5
-            ORDER BY user_completions DESC
-            LIMIT 5 OFFSET 0;
-        """)
-        data = cur.fetchall()
-        cur.close()
-        conn.close()
+        ok, err, data = get_top_media_completed()
+        if not ok:
+            logger.error(f"/top-media-completions failed: {err}")
+            return jsonify({"error": "Query failed"}), 500
         return jsonify(data)
     except Exception as exc:
         logger.error(f"/top-media-completions failed: {exc}")
@@ -140,20 +103,10 @@ def top_media_completions():
 def avg_rating_genre():
     """Average rating per genre."""
     try:
-        conn = get_connection()
-        cur = conn.cursor(dictionary=True)
-        cur.execute("""
-            SELECT 
-                AVG(r.Rating) AS avg_rating, 
-                g.GenreName
-            FROM Review AS r
-            JOIN Media AS m ON r.MediaId = m.MediaId
-            JOIN Genre AS g ON m.GenreId = g.GenreId
-            GROUP BY g.GenreName;
-        """)
-        data = cur.fetchall()
-        cur.close()
-        conn.close()
+        ok, err, data = get_avg_rating_per_genre()
+        if not ok:
+            logger.error(f"/avg-rating-genre failed: {err}")
+            return jsonify({"error": "Query failed"}), 500
         return jsonify(data)
     except Exception as exc:
         logger.error(f"/avg-rating-genre failed: {exc}")
@@ -163,24 +116,10 @@ def avg_rating_genre():
 def users_rated_high():
     """Users who rated at least one media above 4 (per your SQL)."""
     try:
-        conn = get_connection()
-        cur = conn.cursor(dictionary=True)
-        cur.execute("""
-            SELECT 
-                UserId, 
-                FirstName, 
-                LastName, 
-                ProfileName
-            FROM User
-            WHERE UserId IN (
-                SELECT UserId
-                FROM Review
-                WHERE Rating >= 4
-            );
-        """)
-        data = cur.fetchall()
-        cur.close()
-        conn.close()
+        ok, err, data = get_users_rating_above()
+        if not ok:
+            logger.error(f"/users-rated-high failed: {err}")
+            return jsonify({"error": "Query failed"}), 500
         return jsonify(data)
     except Exception as exc:
         logger.error(f"/users-rated-high failed: {exc}")
@@ -190,28 +129,34 @@ def users_rated_high():
 def low_rated_recent():
     """10 most recent low-rated media (rating ≤ 3)."""
     try:
-        conn = get_connection()
-        cur = conn.cursor(dictionary=True)
-        cur.execute("""
-            SELECT 
-                Media.MediaName,
-                Media.MediaType,
-                Media.ReleaseYear,
-                Review.Rating
-            FROM Review
-            JOIN Media ON Review.MediaId = Media.MediaId
-            WHERE Review.Rating <= 3
-            ORDER BY Media.ReleaseYear DESC
-            LIMIT 10;
-        """)
-        data = cur.fetchall()
-        cur.close()
-        conn.close()
+        ok, err, data = get_recent_low_rated()
+        if not ok:
+            logger.error(f"/low-rated-recent failed: {err}")
+            return jsonify({"error": "Query failed"}), 500
         return jsonify(data)
     except Exception as exc:
         logger.error(f"/low-rated-recent failed: {exc}")
         return jsonify({"error": "Query failed"}), 500
     
+
+@api_bp.post("/media-entries")
+def api_create_media_entry():
+    """Create a full media entry (User, Media, Review, etc.)."""
+    data: Dict[str, Any] = request.get_json(silent=True) or {}  # type: ignore
+    
+    # Basic validation
+    required = ["firstname", "lastname", "profilename", "mediatype", "medianame", "releaseyear", "genre", "platform", "rating", "status"]
+    for field in required:
+        if field not in data or not data[field]:
+            return jsonify({"error": f"Missing field: {field}"}), 400
+
+    ok, err = create_full_media_entry(data)
+    if not ok:
+        logger.error(f"Create media entry failed: {err}")
+        return jsonify({"error": err}), 500
+
+    return jsonify({"status": "ok"}), 201
+
 
 # USER CRUD ROUTES
 
@@ -219,7 +164,7 @@ def low_rated_recent():
 @api_bp.post("/users/create")
 def api_create_user():
     """Create a new user."""
-    data = request.get_json(silent=True) or {}
+    data: Dict[str, Any] = request.get_json(silent=True) or {}  # type: ignore
 
     first = data.get("FirstName")
     last = data.get("LastName")
@@ -228,7 +173,7 @@ def api_create_user():
     if not first or not last or not profile:
         return jsonify({"error": "Missing fields"}), 400
 
-    ok, err = create_user(first, last, profile)
+    ok, err = create_user(str(first), str(last), str(profile))
     if not ok:
         return jsonify({"error": err}), 500
 
@@ -247,9 +192,9 @@ def api_get_all_users():
 
 
 @api_bp.put("/users/<int:user_id>")
-def api_update_user(user_id):
+def api_update_user(user_id: int):
     """Update an existing user."""
-    data = request.get_json(silent=True) or {}
+    data: Dict[str, Any] = request.get_json(silent=True) or {}  # type: ignore
 
     first = data.get("FirstName")
     last = data.get("LastName")
@@ -258,7 +203,7 @@ def api_update_user(user_id):
     if not first or not last or not profile:
         return jsonify({"error": "Missing fields"}), 400
 
-    ok, err = update_user(user_id, first, last, profile)
+    ok, err = update_user(user_id, str(first), str(last), str(profile))
     if not ok:
         return jsonify({"error": err}), 500
 
@@ -266,7 +211,7 @@ def api_update_user(user_id):
 
 
 @api_bp.delete("/users/<int:user_id>")
-def api_delete_user(user_id):
+def api_delete_user(user_id: int):
     """Delete a user."""
     ok, err = delete_user(user_id)
     if not ok:
@@ -281,7 +226,7 @@ def api_delete_user(user_id):
 @api_bp.post("/reviews/create")
 def api_create_review():
     """Create a review."""
-    data = request.get_json(silent=True) or {}
+    data: Dict[str, Any] = request.get_json(silent=True) or {}  # type: ignore
 
     user_id = data.get("UserId")
     media_id = data.get("MediaId")
@@ -292,7 +237,7 @@ def api_create_review():
     if not user_id or not media_id or rating is None or not status:
         return jsonify({"error": "Required fields missing"}), 400
 
-    ok, err = create_review(user_id, media_id, rating, text, status)
+    ok, err = create_review(int(user_id), int(media_id), int(rating), str(text) if text else "", str(status))
     if not ok:
         return jsonify({"error": err}), 500
 
@@ -300,9 +245,9 @@ def api_create_review():
 
 
 @api_bp.put("/reviews/<int:review_id>")
-def api_update_review(review_id):
+def api_update_review(review_id: int):
     """Update a review."""
-    data = request.get_json(silent=True) or {}
+    data: Dict[str, Any] = request.get_json(silent=True) or {}  # type: ignore
 
     rating = data.get("Rating")
     text = data.get("ReviewText")
@@ -311,7 +256,7 @@ def api_update_review(review_id):
     if rating is None or not status:
         return jsonify({"error": "Missing required fields"}), 400
 
-    ok, err = update_review(review_id, rating, text, status)
+    ok, err = update_review(review_id, int(rating), str(text) if text else "", str(status))
     if not ok:
         return jsonify({"error": err}), 500
 
@@ -319,7 +264,7 @@ def api_update_review(review_id):
 
 
 @api_bp.delete("/reviews/<int:review_id>")
-def api_delete_review(review_id):
+def api_delete_review(review_id: int):
     """Delete a review."""
     ok, err = delete_review(review_id)
     if not ok:
