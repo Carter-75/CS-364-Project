@@ -20,15 +20,27 @@ def kill_port(port):
             print(f"Error cleaning port {port}: {e}")
     else:
         # Unix-like (macOS/Linux)
-        try:
-            # lsof -t -i:PORT returns the PID
-            # We use shell=True to allow the pipe
-            cmd = f"lsof -t -i:{port} | xargs kill -9"
-            subprocess.run(cmd, shell=True, check=False)
-            print(f"Cleaned port {port}.")
-        except Exception as e:
-            # lsof might return non-zero if no process found, which is fine
-            pass
+        killed = False
+        # Try lsof (macOS standard, Linux common)
+        if shutil.which("lsof"):
+            try:
+                # Check if anything is listening first to avoid xargs errors
+                check = subprocess.run(f"lsof -t -i:{port}", shell=True, capture_output=True, text=True)
+                if check.stdout.strip():
+                    subprocess.run(f"lsof -t -i:{port} | xargs kill -9", shell=True, check=False, stderr=subprocess.DEVNULL)
+                    print(f"Cleaned port {port} using lsof.")
+                    killed = True
+            except Exception:
+                pass
+        
+        if not killed and shutil.which("fuser"):
+             # Try fuser (Linux common)
+             try:
+                 subprocess.run(f"fuser -k {port}/tcp", shell=True, check=False, stderr=subprocess.DEVNULL)
+                 print(f"Cleaned port {port} using fuser.")
+                 killed = True
+             except Exception:
+                 pass
 
 def start_server(name, command, cwd):
     """Starts a server in a new terminal window."""
@@ -55,7 +67,7 @@ def start_server(name, command, cwd):
         
     elif system == "Linux":
         # Try common terminal emulators
-        terminals = ["gnome-terminal", "x-terminal-emulator", "konsole", "xfce4-terminal"]
+        terminals = ["gnome-terminal", "konsole", "xfce4-terminal", "x-terminal-emulator", "terminator", "tilix", "alacritty"]
         found = False
         for term in terminals:
             if shutil.which(term):
@@ -118,6 +130,11 @@ def setup_backend(backend_dir):
 def setup_frontend(frontend_dir):
     """Installs Node modules if missing."""
     print("--- Setting up Frontend ---")
+
+    if not shutil.which("npm"):
+        print("Error: Node.js (npm) is not installed or not in PATH.")
+        raise Exception("npm not found")
+
     node_modules = os.path.join(frontend_dir, "node_modules")
     if not os.path.exists(node_modules):
         print("Installing Node.js dependencies (npm install)...")
