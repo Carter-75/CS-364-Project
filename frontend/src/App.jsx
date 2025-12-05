@@ -80,22 +80,26 @@ export default function App() {
   }
 
   return (
-    <div>
-      <div className="status-panel">
-        <h2>Backend Status</h2>
-        <div className="status-items">
-          <div className="status-item">
-            <span className="label">API:</span>
-            <span className={`value ${apiStatus === 'ok' ? 'ok' : 'error'}`}>{apiStatus}</span>
-          </div>
-          <div className="status-item">
-            <span className="label">Database:</span>
-            <span className={`value ${dbStatus === 'ok' ? 'ok' : 'error'}`}>{dbStatus}</span>
+    <div className="dashboard">
+      <header className="dashboard-header">
+        <h1>MediaWatchList</h1>
+        <div className="status-panel">
+          <div className="status-items">
+            <div className="status-item">
+              <span className="label">API:</span>
+              <span className={`value ${apiStatus === 'ok' ? 'ok' : 'error'}`}>{apiStatus}</span>
+            </div>
+            <div className="status-item">
+              <span className="label">Database:</span>
+              <span className={`value ${dbStatus === 'ok' ? 'ok' : 'error'}`}>{dbStatus}</span>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <h1>Add your media entry</h1>
+      <div className="dashboard-content">
+        <section className="form-section">
+          <h2>Add Entry</h2>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -356,10 +360,10 @@ export default function App() {
         )}
         <button type="submit">SAVE</button>
       </form>
-      {result && <p aria-live='polite'>{result}</p>}
+      {result && <p aria-live='polite' className="result-message">{result}</p>}
+        </section>
 
-      <hr />
-      <section aria-labelledby="queries-title">
+        <section className="queries-section" aria-labelledby="queries-title">
         <h2 id="queries-title">Advanced Queries</h2>
         <div className="query-buttons">
           <button
@@ -430,7 +434,8 @@ export default function App() {
           loading={queryResult.loading}
           error={queryResult.error}
         />
-      </section>
+        </section>
+      </div>
     </div>
   );
 }
