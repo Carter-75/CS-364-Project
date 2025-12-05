@@ -122,7 +122,7 @@ export default function App() {
             }
 
             if (response.ok || (responseData && (responseData.status === 'ok' || responseData.success))) {
-              setResult('SAVED!');
+              setResult('Entry saved successfully!');
               setFormData({
                 firstname: '',
                 lastname: '',
