@@ -218,7 +218,7 @@ form button[type="submit"]:hover {
   box-shadow: var(--shadow);
 }
 
-/* Search Section in Nav */
+/* Search Section in Header */
 .search-nav-container {
   position: relative;
   flex: 1;
