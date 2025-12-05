@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import QueryResults from './components/QueryResults';
 
 export default function App() {
   // Updated by Copilot
@@ -360,7 +361,7 @@ export default function App() {
       <hr />
       <section aria-labelledby="queries-title">
         <h2 id="queries-title">Advanced Queries</h2>
-        <div>
+        <div className="query-buttons">
           <button
             type="button"
             onClick={() =>
@@ -422,26 +423,14 @@ export default function App() {
             Recent low-rated media
           </button>
         </div>
-        {queryResult.loading && <p>Loading…</p>}
-        {queryResult.error && (
-          <p role="alert">Query failed: {queryResult.error}</p>
-        )}
-        {queryResult.data && (
-          <div>
-            <h3>{queryResult.title}</h3>
-            <pre>{JSON.stringify(queryResult.data, null, 2)}</pre>
-          </div>
-        )}
+        
+        <QueryResults 
+          title={queryResult.title}
+          data={queryResult.data}
+          loading={queryResult.loading}
+          error={queryResult.error}
+        />
       </section>
-
-      {/*<h2>Recent names</h2>
-      <ul>
-        {items.map((it) => (
-          <li key={it.id}>
-            {it.name} — {it.created_at ? new Date(it.created_at).toLocaleString() : ''}
-          </li>
-        ))}
-      </ul>*/}
     </div>
   );
 }
