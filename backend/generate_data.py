@@ -1,7 +1,8 @@
+import os
 import random
 import requests
 import time
-from typing import List, Dict
+from typing import List, Dict, Any, Set, Tuple
 
 # API to get random user data
 RANDOM_USER_API = "https://randomuser.me/api/"
@@ -70,9 +71,9 @@ REVIEW_ADJECTIVES = [
     'stunning', 'gripping', 'heartwarming', 'entertaining', 'impressive'
 ]
 
-def fetch_random_users(count: int) -> List[Dict]:
+def fetch_random_users(count: int) -> List[Dict[str, Any]]:
     """Fetch random user data from API"""
-    users = []
+    users: List[Dict[str, Any]] = []
     batch_size = 50  # API allows up to 5000 per request
     
     for i in range(0, count, batch_size):
@@ -143,6 +144,19 @@ def generate_review_text(media_type: str, genre: str) -> str:
 def generate_sql_inserts(num_users: int = 1000, output_file: str = 'insert_data.sql'):
     """Generate SQL INSERT statements for ~1000 users with related data"""
     
+    # Ensure output path is correct regardless of where script is run
+    if not os.path.isabs(output_file):
+        # If relative, make it relative to this script's directory
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        # If output_file starts with 'app/', check if we are already in backend
+        if output_file.startswith('app/') and os.path.exists(os.path.join(base_dir, 'app')):
+             output_file = os.path.join(base_dir, output_file)
+        elif output_file == 'insert_data.sql':
+             # Default to app/insert_data.sql inside backend
+             output_file = os.path.join(base_dir, 'app', 'insert_data.sql')
+        else:
+             output_file = os.path.join(base_dir, output_file)
+
     print(f"Fetching {num_users} random users from API...")
     api_users = fetch_random_users(num_users)
     
@@ -161,9 +175,9 @@ def generate_sql_inserts(num_users: int = 1000, output_file: str = 'insert_data.
         f.write("SET FOREIGN_KEY_CHECKS = 0;\n\n")
         
         # Track unique entities to avoid duplicates
-        inserted_genres = set()
-        inserted_platforms = set()
-        inserted_media = set()
+        inserted_genres: Set[str] = set()
+        inserted_platforms: Set[str] = set()
+        inserted_media: Set[Tuple[str, str, int]] = set()
         
         # Generate Genres
         f.write("-- Insert Genres\n")
@@ -184,7 +198,7 @@ def generate_sql_inserts(num_users: int = 1000, output_file: str = 'insert_data.
         # Generate media items (more than users to create variety)
         num_media = num_users * 3  # 3x media items
         f.write(f"-- Insert {num_media} Media Items\n")
-        media_ids = []
+        media_ids: List[int] = []
         for i in range(1, num_media + 1):
             media_name = generate_media_title()
             media_type = random.choice(MEDIA_TYPES)

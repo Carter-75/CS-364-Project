@@ -5,7 +5,7 @@ import sys
 import platform
 import shutil
 
-def kill_port(port):
+def kill_port(port: int):
     """Kills any process listening on the given port."""
     print(f"Checking port {port}...")
     system = platform.system()
@@ -42,7 +42,7 @@ def kill_port(port):
              except Exception:
                  pass
 
-def start_server(name, command, cwd):
+def start_server(name: str, command: str, cwd: str):
     """Starts a server in a new terminal window."""
     print(f"Starting {name}...")
     system = platform.system()
@@ -81,7 +81,7 @@ def start_server(name, command, cwd):
             print(f"Warning: Could not find a supported terminal emulator for {name}. Running in background...")
             subprocess.Popen(command, shell=True, cwd=cwd)
 
-def setup_backend(backend_dir):
+def setup_backend(backend_dir: str) -> str:
     """Sets up Python venv, installs requirements, and inits DB."""
     print("--- Setting up Backend ---")
     
@@ -119,7 +119,7 @@ def setup_backend(backend_dir):
     if os.path.exists(init_script):
         print("Initializing database (if needed)...")
         try:
-            subprocess.check_call([python_exe, init_script])
+            subprocess.check_call([python_exe, init_script], cwd=backend_dir)
         except subprocess.CalledProcessError:
             print("Error initializing database. Ensure MySQL is running.")
             # Don't raise here, maybe they just want to start the server and DB is already fine?
@@ -127,7 +127,7 @@ def setup_backend(backend_dir):
     
     return python_exe
 
-def setup_frontend(frontend_dir):
+def setup_frontend(frontend_dir: str):
     """Installs Node modules if missing."""
     print("--- Setting up Frontend ---")
 
@@ -154,15 +154,13 @@ def main():
     frontend_dir = os.path.join(base_dir, "frontend")
 
     # --- Setup Phase ---
+    python_exe = sys.executable
     try:
         python_exe = setup_backend(backend_dir)
         setup_frontend(frontend_dir)
     except Exception as e:
         print(f"Setup failed: {e}")
         print("Attempting to start servers anyway...")
-        # Fallback to system python if setup failed
-        if 'python_exe' not in locals():
-            python_exe = sys.executable
 
     # --- Launch Phase ---
     print("\n--- Starting Servers ---")

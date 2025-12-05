@@ -80,9 +80,52 @@ def init_db():
                     # but usually we want to see them. 
                     # However, the script drops and recreates, so it should be fine.
                     print(f"Error executing statement: {err}")
-                    print(f"Statement: {statement[:50]}...")
+                    print(f"Statement: {stmt[:50]}...")
 
         conn.commit()
+
+        # --- Insert Data from insert_data.sql if it exists ---
+        insert_script = "app/insert_data.sql"
+        if os.path.exists(insert_script):
+            print(f"\nFound {insert_script}. Inserting sample data...")
+            try:
+                with open(insert_script, "r", encoding='utf-8') as f:
+                    insert_sql = f.read()
+                
+                # Replace DB name if needed
+                insert_sql = insert_sql.replace("mediawatchlist", f"`{db_name}`")
+                
+                # Split and execute
+                insert_statements = insert_sql.split(';')
+                total_stmts = len(insert_statements)
+                print(f"Executing ~{total_stmts} statements from insert_data.sql...")
+                
+                count = 0
+                for statement in insert_statements:
+                    stmt = statement.strip()
+                    if not stmt:
+                        continue
+                    try:
+                        cursor.execute(stmt)
+                        count += 1
+                        if count % 1000 == 0:
+                            print(f"  Executed {count} statements...")
+                            conn.commit()
+                    except mysql.connector.Error as err:
+                        # Ignore duplicate entry errors if re-running
+                        if err.errno == 1062: 
+                            pass
+                        else:
+                            print(f"Error executing insert statement: {err}")
+                
+                conn.commit()
+                print("Data insertion complete!")
+            except Exception as e:
+                print(f"Failed to insert data: {e}")
+        else:
+            print(f"\nNo {insert_script} found. Skipping data insertion.")
+            print("Run 'python generate_data.py' to generate sample data.")
+
         cursor.close()
         conn.close()
         print("Database initialization complete!")
