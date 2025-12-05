@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import QueryResults from './components/QueryResults';
+import SearchSection from './components/SearchSection';
 
 export default function App() {
   // Updated by Copilot
@@ -83,6 +84,7 @@ export default function App() {
     <div className="dashboard">
       <header className="dashboard-header">
         <h1>MediaWatchList</h1>
+        <SearchSection />
         <div className="status-panel">
           <div className="status-items">
             <div className="status-item">

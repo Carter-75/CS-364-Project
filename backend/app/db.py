@@ -372,67 +372,115 @@ def delete_review(review_id: int) -> Tuple[bool, Optional[str]]:
         return True, None
     except Exception as e:
         return False, str(e)
-"""Examples
-def table_exists() -> None:
-    conn=get_connection()
-    try: 
-        cur=conn.cursor()
-        cur.execute ('''
-            CREATE TABLE IF NOT EXISTS names (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                name VARCHAR(255) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            ''')
-        conn.commit()
-        cur.close()
-    finally: 
-        conn.close()
 
-def name(name: str) -> Tuple[bool, Optional[str]]:
-    try:
-        table_exists()
-        conn=get_connection()
-        cur=conn.cursor()
-        cur.execute("INSERT INTO names (name) VALUES (%s)", (name,))
-        conn.commit()
-        cur.close()
-        return True, None
-    except Error as exc:
-        return False, str(exc)
-    except Exception as exc:
-        return False, str(exc)
-    finally:
-        conn.close()
+# Search Functionality
 
-
-def fetch_names() -> Tuple[bool, Optional[str], Optional[list]]:
-    '''Return a list of rows as dicts: [{id, name, created_at}, ...].'''
+def search_database(query: str, category: str, sort: str) -> Tuple[bool, Optional[str], Optional[List[Dict[str, Any]]]]:
     conn = None
     try:
-        table_exists()
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
-        cur.execute("SELECT id, name, created_at FROM names ORDER BY id DESC")
+        
+        sql = ""
+        params = []
+        search_term = f"%{query}%"
+
+        if category == 'media':
+            sql = """
+                SELECT 
+                    m.MediaName, 
+                    m.MediaType, 
+                    m.ReleaseYear, 
+                    g.GenreName, 
+                    p.PlatformName, 
+                    ROUND(AVG(r.Rating), 2) as AvgRating,
+                    COUNT(r.ReviewId) as ReviewCount
+                FROM Media m
+                LEFT JOIN Genre g ON m.GenreId = g.GenreId
+                LEFT JOIN Platform p ON m.PlatformId = p.PlatformId
+                LEFT JOIN Review r ON m.MediaId = r.MediaId
+                WHERE m.MediaName LIKE %s
+                GROUP BY m.MediaId
+            """
+            params = [search_term]
+            
+            if sort == 'az':
+                sql += " ORDER BY m.MediaName ASC"
+            elif sort == 'za':
+                sql += " ORDER BY m.MediaName DESC"
+            elif sort == 'rating_desc':
+                sql += " ORDER BY AvgRating DESC"
+            elif sort == 'rating_asc':
+                sql += " ORDER BY AvgRating ASC"
+            elif sort == 'year_desc':
+                sql += " ORDER BY m.ReleaseYear DESC"
+            elif sort == 'year_asc':
+                sql += " ORDER BY m.ReleaseYear ASC"
+
+        elif category == 'user':
+            sql = """
+                SELECT 
+                    u.FirstName, 
+                    u.LastName, 
+                    u.ProfileName,
+                    COUNT(r.ReviewId) as ReviewCount
+                FROM User u
+                LEFT JOIN Review r ON u.UserId = r.UserId
+                WHERE u.FirstName LIKE %s OR u.LastName LIKE %s OR u.ProfileName LIKE %s
+                GROUP BY u.UserId
+            """
+            params = [search_term, search_term, search_term]
+            
+            if sort == 'az':
+                sql += " ORDER BY u.LastName ASC, u.FirstName ASC"
+            elif sort == 'za':
+                sql += " ORDER BY u.LastName DESC, u.FirstName DESC"
+            elif sort == 'count_desc':
+                sql += " ORDER BY ReviewCount DESC"
+            elif sort == 'count_asc':
+                sql += " ORDER BY ReviewCount ASC"
+
+        elif category == 'genre':
+            sql = """
+                SELECT 
+                    g.GenreName,
+                    COUNT(m.MediaId) as MediaCount,
+                    ROUND(AVG(r.Rating), 2) as AvgRating
+                FROM Genre g
+                LEFT JOIN Media m ON g.GenreId = m.GenreId
+                LEFT JOIN Review r ON m.MediaId = r.MediaId
+                WHERE g.GenreName LIKE %s
+                GROUP BY g.GenreId
+            """
+            params = [search_term]
+            
+            if sort == 'az':
+                sql += " ORDER BY g.GenreName ASC"
+            elif sort == 'za':
+                sql += " ORDER BY g.GenreName DESC"
+            elif sort == 'rating_desc':
+                sql += " ORDER BY AvgRating DESC"
+            elif sort == 'rating_asc':
+                sql += " ORDER BY AvgRating ASC"
+            elif sort == 'count_desc':
+                sql += " ORDER BY MediaCount DESC"
+            elif sort == 'count_asc':
+                sql += " ORDER BY MediaCount ASC"
+
+        else:
+            return False, "Invalid category", None
+
+        cur.execute(sql, tuple(params))
         rows = cur.fetchall() or []
-        # Ensure created_at is JSON-serializable for the API response
-        for row in rows:
-            ca = row.get("created_at")
-            if ca is not None and hasattr(ca, "isoformat"):
-                row["created_at"] = ca.isoformat()
         cur.close()
         return True, None, rows
+
     except Error as exc:
         return False, str(exc), None
-    except Exception as exc:
-        return False, str(exc), None
     finally:
-        try:
-            if conn is not None:
-                conn.close()
-        except Exception:
-            pass
-"""
+        if conn:
+            conn.close()
+
 
 def create_full_media_entry(data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
     """

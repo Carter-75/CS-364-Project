@@ -15,7 +15,8 @@ from .db import (
     create_review,
     update_review,
     delete_review,
-    create_full_media_entry
+    create_full_media_entry,
+    search_database
 )
 import logging
 
@@ -138,6 +139,24 @@ def low_rated_recent():
         logger.error(f"/low-rated-recent failed: {exc}")
         return jsonify({"error": "Query failed"}), 500
     
+
+@api_bp.get("/search")
+def api_search():
+    """Search endpoint for Media, Users, and Genres."""
+    query = request.args.get("q", "")
+    category = request.args.get("category", "media")
+    sort = request.args.get("sort", "az")
+
+    try:
+        ok, err, data = search_database(query, category, sort)
+        if not ok:
+            logger.error(f"/search failed: {err}")
+            return jsonify({"error": err or "Search failed"}), 500
+        return jsonify(data)
+    except Exception as exc:
+        logger.error(f"/search failed: {exc}")
+        return jsonify({"error": "Search failed"}), 500
+
 
 @api_bp.post("/media-entries")
 def api_create_media_entry():
