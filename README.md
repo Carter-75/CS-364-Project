@@ -1,95 +1,117 @@
-# Fullstack Website (Flask + MySQL + React via Vite)
+# MediaWatchList
 
-This project is a minimal full‑stack setup:
-- Backend: Python Flask API with MySQL Connector
-- Frontend: React (Vite dev server + proxy to Flask)
+## Purpose
+MediaWatchList is a full-stack web application designed to track and manage personal media consumption across various entertainment types (Movies, Shows, Books, Games). It allows users to log entries, rate content, and perform advanced analytical queries to discover trends in their viewing habits.
 
-Prerequisites
-- Python 3.10+
-- Node.js 18+
-- MySQL server
+## Architecture
+The project follows a modular full-stack architecture:
 
-Quick start
+### Frontend
+- **Framework**: React (Vite)
+- **Styling**: Custom CSS with Dark Theme (CSS Variables, Grid/Flexbox)
+- **Communication**: REST API via `fetch` (proxied to backend in dev)
+- **Structure**:
+  - `src/components`: Reusable UI components (e.g., `QueryResults`)
+  - `src/App.jsx`: Main application logic and state management
+
+### Backend
+- **Runtime**: Python 3.10+
+- **Framework**: Flask
+- **Database**: MySQL 8.0+
+- **Security**:
+  - Parameterized SQL queries (prevention of SQL Injection)
+  - Environment-based configuration (Secrets management)
+  - Input validation and sanitization
+- **Layers**:
+  - **Routes** (`routes.py`): Handles HTTP requests, validation, and response formatting.
+  - **Data Access** (`db.py`): Manages database connections, transactions, and SQL execution.
+
+## Installation
+
+### Prerequisites
+- Python 3.10 or higher
+- Node.js 18 or higher
+- MySQL Server running locally or accessible via network
+
+### Backend Setup
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Create a virtual environment:
+   ```bash
+   python -m venv .venv
+   ```
+3. Activate the environment:
+   - Windows: `.venv\Scripts\activate`
+   - Mac/Linux: `source .venv/bin/activate`
+4. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+5. Configure Environment:
+   - Create a `.env` file in `backend/` with the following:
+     ```env
+     DB_HOST=localhost
+     DB_PORT=3306
+     DB_USER=your_user
+     DB_PASSWORD=your_password
+     DB_NAME=mediawatchlist
+     ```
+
+### Frontend Setup
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+## Usage
+
+### Running the Application (Cross-Platform)
+We provide a unified startup script that handles both backend and frontend:
+
+```bash
+# From the project root
+python start_app.py
 ```
-# Backend
-cd backend
-python -m venv .venv
-.venv\Scripts\activate   # Windows
-pip install -r requirements.txt
-python run.py
 
-# Frontend (in a separate terminal)
+### Manual Startup
+**Backend:**
+```bash
+cd backend
+python run.py
+```
+
+**Frontend:**
+```bash
 cd frontend
-npm install
 npm run dev
 ```
-Open the printed URL (default `http://127.0.0.1:5173/`). Keep the Flask server running at the same time.
+Access the application at `http://localhost:5173`.
 
-Backend (Flask)
-1) Create and populate `backend/.env`:
-```
-FLASK_RUN_HOST=0.0.0.0
-FLASK_RUN_PORT=5000
-FLASK_DEBUG=0
-FLASK_ENV=production
-DB_HOST=<your-db-host>
-DB_PORT=3306
-DB_USER=<your-db-user>
-DB_PASSWORD=<your-db-password>
-DB_NAME=<your-database>
-# For production, set a specific origin. During local dev Vite uses http://127.0.0.1:5173
-FRONTEND_ORIGIN=http://127.0.0.1:5173
-```
+## Testing
+Run the backend test suite to verify API and Database logic:
 
-2) Install deps and run:
-```
+```bash
 cd backend
-python -m venv .venv
-.venv\Scripts\activate   # Windows
-pip install -r requirements.txt
-python run.py
-# or: waitress-serve --listen=0.0.0.0:5000 run:app
+python -m unittest discover tests
 ```
 
-3) Verify endpoints:
-- `GET http://127.0.0.1:5000/` → `{ "status": "ok" }`
-- `GET http://127.0.0.1:5000/api/health` → `{ "status": "ok" }`
-- `GET http://127.0.0.1:5000/api/db/ping` → `{ "status": "ok" }` if DB creds are valid
+## Environment Configuration
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DB_HOST` | Database Hostname | `localhost` |
+| `DB_PORT` | Database Port | `3306` |
+| `DB_USER` | Database Username | `root` |
+| `DB_PASSWORD` | Database Password | *None* |
+| `DB_NAME` | Database Name | `mediawatchlist` |
 
-Frontend (Vite + React)
-1) Install and start dev server:
-```
-cd frontend
-npm install
-npm run dev
-```
+## Security & Best Practices
+- **Input Validation**: All API endpoints validate required fields and data types.
+- **SQL Safety**: All database interactions use parameterized queries to prevent SQL injection.
+- **Error Handling**: Centralized error logging and safe client-facing error messages.
 
-2) Open the printed URL (default `http://127.0.0.1:5173/`). The app shows API and DB status.
-
-Vite is configured to proxy `/api/*` to Flask at `http://127.0.0.1:5000` in `frontend/vite.config.js`.
-
-Folder structure
-```
-backend/
-  app/
-    __init__.py        # Flask app factory + CORS
-    routes.py          # /api routes (health, db ping)
-    db.py              # MySQL connection + helpers
-  requirements.txt
-  run.py               # Dev server entry
-
-frontend/
-  src/
-    main.jsx           # React entry
-    App.jsx            # API/DB status component
-  vite.config.js       # Dev proxy to Flask
-  package.json         # deps + scripts
-  index.html           # Vite HTML entry
-  assets/css/style.css # basic styles
-
-TODO.md                # setup checklist
-```
-
-Notes
-- For production, build the frontend (`npm run build`) and serve the static files with a web server. Adjust CORS and deployment according to your environment.
-- The backend uses environment variables (via `python-dotenv` in dev) to keep secrets out of source control.
