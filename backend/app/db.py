@@ -1,5 +1,5 @@
 import os
-from typing import Tuple, Optional, Dict, Any, List
+from typing import Tuple, Optional, Dict, Any, List, cast
 
 
 import mysql.connector
@@ -473,7 +473,7 @@ def search_database(query: str, category: str, sort: str) -> Tuple[bool, Optiona
         cur.execute(sql, tuple(params))
         rows = cur.fetchall() or []
         cur.close()
-        return True, None, rows
+        return True, None, cast(List[Dict[str, Any]], rows)
 
     except Error as exc:
         return False, str(exc), None
@@ -492,7 +492,7 @@ def create_full_media_entry(data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         conn = get_connection()
         conn.start_transaction()  # Explicitly start transaction for ACID compliance
 
-        def fetch_value(sql, params):
+        def fetch_value(sql: str, params: tuple) -> Any:
             cur = conn.cursor(buffered=True)
             try:
                 cur.execute(sql, params)
@@ -504,7 +504,7 @@ def create_full_media_entry(data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
             finally:
                 cur.close()
 
-        def insert_record(sql, params):
+        def insert_record(sql: str, params: tuple) -> Any:
             cur = conn.cursor(buffered=True)
             try:
                 cur.execute(sql, params)
@@ -518,7 +518,7 @@ def create_full_media_entry(data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
             finally:
                 cur.close()
 
-        def execute_stmt(sql, params):
+        def execute_stmt(sql: str, params: tuple) -> None:
             cur = conn.cursor(buffered=True)
             try:
                 cur.execute(sql, params)
